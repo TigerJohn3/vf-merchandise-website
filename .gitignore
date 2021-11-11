@@ -138,7 +138,7 @@ dmypy.json
 cython_debug/
 
 media
-static
+static_root
 
 .DS_Store
 .idea
