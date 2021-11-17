@@ -28,15 +28,29 @@ class Address(models.Model):
         verbose_name_plural = 'Addresses'
 
 
+class ColorVariation(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+class SizeVariation(models.Model):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
 
 class Product(models.Model):
     title = models.CharField(max_length=150)
     slug = models.SlugField(unique=True)
     image = models.ImageField(upload_to='product-images')
     description = models.TextField()
+    price = models.IntegerField(default=0) #Raw price, will have to change with PYR
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     active = models.BooleanField(default=False)
+    available_colors = models.ManyToManyField(ColorVariation)
+    available_sizes = models.ManyToManyField(SizeVariation)
 
     def __str__(self):
         return self.title
@@ -44,15 +58,27 @@ class Product(models.Model):
     def get_absolute_url(self):
         return reverse("cart:product-detail", kwargs={'slug': self.slug})
 
+    def get_price(self):
+        return "{:.2f}".format(self.price / 100)
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(
         "Order", related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+    color = models.ForeignKey(ColorVariation, on_delete=models.CASCADE)
+    size = models.ForeignKey(SizeVariation, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.quantity} x {self.product.title}"
+
+    def get_raw_total_item_price(self):
+        return self.quantity * self.product.price
+
+    def get_total_item_price(self):
+        price = self.get_raw_total_item_price()
+        return "{:.2f}".format(price / 100)
 
 
 class Order(models.Model):
@@ -73,6 +99,26 @@ class Order(models.Model):
     @property
     def reference_number(self):
         return f"ORDER-{self.pk}"
+
+    def get_raw_subtotal(self):
+        total = 0
+        for order_item in self.items.all():
+            total += order_item.get_raw_total_item_price()
+        return total
+
+    def get_subtotal(self):
+        subtotal = self.get_raw_subtotal()
+        return "{:.2f}".format(subtotal / 100)
+
+    def get_raw_total(self):
+        subtotal = self.get_raw_subtotal()
+        # add tax, add delivery, subtract discounts HERE!!!
+        # total = (subtotal + delivery - discount) + tax
+        return subtotal #With calculations above, this var changes to total
+
+    def get_total(self):
+        total = self.get_raw_total()
+        return "{:.2f}".format(total / 100)
 
 
 class Payment(models.Model):
