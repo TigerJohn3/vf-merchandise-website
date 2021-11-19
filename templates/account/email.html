@@ -1,6 +1,7 @@
-{% extends "account/base.html" %}
+{% extends "base.html" %}
 
 {% load i18n %}
+{% load crispy_forms_tags %}
 
 {% block head_title %}{% trans "E-mail Addresses" %}{% endblock %}
 
@@ -11,6 +12,7 @@
 
 <form action="{% url 'account_email' %}" class="email_list" method="post">
 {% csrf_token %}
+{{ form|crispy }}
 <fieldset class="blockLabels">
 
   {% for emailaddress in user.emailaddress_set.all %}
